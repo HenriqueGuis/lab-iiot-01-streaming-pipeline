@@ -1,0 +1,1004 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"padding: 20px 24px; font-family: Inter, system-ui, sans-serif;\">\n  <h1 style=\"font-size: 36px; font-weight: 600; color: #FFFFFF; margin: 0 0 6px 0; letter-spacing: -0.5px;\">\n    Industrial Streaming Lab - IIoT\n  </h1>\n  <p style=\"font-size: 14px; color: #9A9DA8; margin: 0; font-weight: 400;\">\n    Pipeline IIoT · MQTT → Kafka → InfluxDB → Grafana · Cenário de Mineração\n  </p>\n</div>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.2.0",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Taxa média de mensagens processadas pelo pipeline, calculada sobre o intervalo de tempo selecionado.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 0,
+        "y": 3
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> aggregateWindow(every: 1s, fn: count, createEmpty: false)\r\n  |> group()\r\n  |> aggregateWindow(every: 1s, fn: sum, createEmpty: false)\r\n  |> mean()\r\n  |> yield(name: \"msg_per_sec\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Mensagens / segundo",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Quantidade de sensores únicos que publicaram leituras no intervalo de tempo selecionado.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "max": 7,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 4
+              },
+              {
+                "color": "green",
+                "value": 7
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 8,
+        "y": 3
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> keep(columns: [\"sensor_id\"])\r\n  |> group()\r\n  |> distinct(column: \"sensor_id\")\r\n  |> count()\r\n  |> yield(name: \"active_sensors\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Sensores ativos",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Tempo decorrido desde a última mensagem recebida pelo pipeline. Valores baixos indicam pipeline saudável e em fluxo contínuo.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 3
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "import \"date\"\r\nnow_ms = date.time(t: now())\r\nfrom(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> keep(columns: [\"_time\"])\r\n  |> group()\r\n  |> sort(columns: [\"_time\"], desc: true)\r\n  |> limit(n: 1)\r\n  |> map(fn: (r) => ({_value: float(v: int(v: now()) - int(v: r._time)) / 1000000000.0}))\r\n  |> yield(name: \"seconds_since_last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Última leitura há",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Leitura mais recente do sensor de temperatura do mancal do JAW-CRUSHER-01.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 40,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 75
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 6
+      },
+      "id": 6,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"JAW-CRUSHER-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"temperature_bearing\")\r\n  |> last()\r\n  |> yield(name: \"current_temp\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Temperatura do Mancal",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Vibração instantânea do mancal do JAW-CRUSHER-01. Valores acima de 7 mm/s indicam atenção; picos curtos são normais.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 10,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 6
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "mm/s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 6
+      },
+      "id": 7,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"JAW-CRUSHER-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"vibration\")\r\n  |> last()\r\n  |> yield(name: \"current_vibration\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Vibração Mancal",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Potência elétrica instantânea do motor do JAW-CRUSHER-01.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "max": 500,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              },
+              {
+                "color": "green",
+                "value": 200
+              },
+              {
+                "color": "#EAB839",
+                "value": 400
+              },
+              {
+                "color": "red",
+                "value": 450
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      },
+      "id": 8,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"JAW-CRUSHER-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"power_motor\")\r\n  |> last()\r\n  |> yield(name: \"current_power\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Potência do Motor Mancal",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Tendência das três variáveis críticas do JAW-CRUSHER-01 ao longo do tempo selecionado. Eixos independentes por sensor.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "series",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature_bearing"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ºC"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Temperatura (°C)"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 40
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 100
+              },
+              {
+                "id": "displayName",
+                "value": "Temperatura (ºC)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pressure_hydraulic"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "Bar"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Pressão (bar)"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 100
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 200
+              },
+              {
+                "id": "displayName",
+                "value": "Pressão Hidráulica"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vibration"
+            },
+            "properties": [
+              {
+                "id": "unit"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "displayName",
+                "value": "Vibração"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 10
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 10
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Vibração (mm/.s)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"JAW-CRUSHER-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"temperature_bearing\" or r.sensor_id == \"pressure_hydraulic\" or r.sensor_id == \"vibration\")\r\n  |> keep(columns: [\"_time\", \"_value\", \"sensor_id\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"britador_multi\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Britador - Vibração, Pressão e Temperatura",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Velocidade linear da correia transportadora em tempo real.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "light-green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 4,
+          "min": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "velocityms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"BELT-CONVEYOR-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"belt_speed\")\r\n  |> keep(columns: [\"_time\", \"_value\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"belt_speed\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Correia - Velocidade",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Vazão mássica medida pelo weightometer da correia transportadora.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-purple",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "max": 350,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ton/h"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 20
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"BELT-CONVEYOR-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"load_weight\")\r\n  |> keep(columns: [\"_time\", \"_value\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"load_weight\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Correia - Vazão Mássica",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-sensors"
+      },
+      "description": "Temperatura média dos roletes da correia transportadora.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 70,
+          "min": 25,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange"
+              },
+              {
+                "color": "red",
+                "value": 58
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 20
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-sensors"
+          },
+          "query": "from(bucket: \"sensors\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"sensor_reading\")\r\n  |> filter(fn: (r) => r._field == \"value\")\r\n  |> filter(fn: (r) => r.equipment_id == \"BELT-CONVEYOR-01\")\r\n  |> filter(fn: (r) => r.sensor_id == \"temperature_roller\")\r\n  |> keep(columns: [\"_time\", \"_value\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"temperature_roller\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Correia - Temperatura dos Roletes",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": false
+  },
+  "timezone": "browser",
+  "title": "Industrial Streaming Lab — Mineração",
+  "uid": "industrial-streaming-mining",
+  "weekStart": ""
+}
