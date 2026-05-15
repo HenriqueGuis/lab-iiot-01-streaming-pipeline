@@ -1,0 +1,28 @@
+# ===================================================================
+# Datasource Provisioning — InfluxDB
+# ===================================================================
+# Este arquivo cria automaticamente o datasource InfluxDB quando o
+# Grafana inicia. Não é necessário configurar nada manualmente.
+#
+# Referência oficial:
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+# ===================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-Sensors
+    uid: influxdb-sensors
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    isDefault: true
+    editable: true
+    jsonData:
+      version: Flux
+      organization: industrial-lab
+      defaultBucket: sensors
+      tlsSkipVerify: true
+      timeInterval: 10s
+    secureJsonData:
+      token: industrial-lab-super-secret-token
