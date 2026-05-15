@@ -1,0 +1,139 @@
+# ===================================================================
+# Industrial Streaming Lab — .gitignore
+# ===================================================================
+
+# ─────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+develop-eggs/
+downloads/
+eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+MANIFEST
+
+# ─────────────────────────────────────────────
+# Virtual environments
+# ─────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# ─────────────────────────────────────────────
+# Variáveis de ambiente sensíveis
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+
+# ─────────────────────────────────────────────
+# IDEs e editores
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ─────────────────────────────────────────────
+# Sistema operacional
+# ─────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ─────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+
+# ─────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────
+# Volumes persistentes que podem ser gerados localmente
+docker-volumes/
+volumes/
+
+# Override files para desenvolvimento local
+docker-compose.override.yml
+
+# ─────────────────────────────────────────────
+# Node-RED (caso seja editado localmente fora do container)
+# ─────────────────────────────────────────────
+node-red/.config.*
+node-red/.flows.json.backup
+node-red/lib/
+node-red/node_modules/
+
+# ─────────────────────────────────────────────
+# Grafana (dados persistidos localmente)
+# ─────────────────────────────────────────────
+grafana/data/
+grafana-storage/
+
+# ─────────────────────────────────────────────
+# Anotações pessoais e arquivos temporários
+# ─────────────────────────────────────────────
+Acessos.txt
+TODO.txt
+notes.md
+scratch/
+tmp/
+*.bak
+*.backup
+*.tmp
+
+# ─────────────────────────────────────────────
+# Arquivos de saída do projeto (artefatos de build)
+# ─────────────────────────────────────────────
+output/
+*.tar
+*.tar.gz
+*.zip
+
+# ─────────────────────────────────────────────
+# Coverage e testes
+# ─────────────────────────────────────────────
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+.hypothesis/
+coverage.xml
+*.cover
+
+# ─────────────────────────────────────────────
+# Outros
+# ─────────────────────────────────────────────
+*.pid

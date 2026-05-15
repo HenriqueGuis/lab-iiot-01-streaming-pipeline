@@ -1,0 +1,223 @@
+# ═══════════════════════════════════════════════════════════════════
+# Industrial Streaming Lab — Docker Compose
+# ═══════════════════════════════════════════════════════════════════
+# Orquestra todo o pipeline: Node-RED → EMQX → Kafka → InfluxDB → Grafana
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ──────────────────────────────────────────────────────────────
+  # Node-RED — Simulador de sensores industriais
+  # ──────────────────────────────────────────────────────────────
+  node-red:
+    image: nodered/node-red:3.1
+    container_name: node-red
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - node-red-data:/data
+      - ./node-red/flows:/data/flows-import
+    environment:
+      - TZ=America/Sao_Paulo
+    depends_on:
+      - emqx
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # EMQX — Broker MQTT
+  # ──────────────────────────────────────────────────────────────
+  emqx:
+    image: emqx/emqx:5.4
+    container_name: emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"      # MQTT
+      - "8083:8083"      # MQTT/WebSocket
+      - "18083:18083"    # Dashboard
+    environment:
+      - EMQX_NAME=emqx
+      - EMQX_HOST=127.0.0.1
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+    volumes:
+      - emqx-data:/opt/emqx/data
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Apache Kafka — Log distribuído (modo KRaft, sem Zookeeper)
+  # ──────────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 24
+      CLUSTER_ID: 'vlN0oD1AQ_6WzPFkDpeRiQ'
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Kafka UI — Interface visual para o Kafka (opcional, ajuda no debug)
+  # ──────────────────────────────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: industrial-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Bridge MQTT → Kafka (Python)
+  # ──────────────────────────────────────────────────────────────
+  mqtt-kafka-bridge:
+    build:
+      context: ./bridge
+      dockerfile: Dockerfile
+    container_name: mqtt-kafka-bridge
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER=emqx
+      - MQTT_PORT=1883
+      - MQTT_TOPIC_PATTERN=plant/+/area/+/equipment/+/sensor/+
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=industrial-sensors
+    depends_on:
+      emqx:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Consumer Kafka → InfluxDB (Python)
+  # ──────────────────────────────────────────────────────────────
+  kafka-influxdb-consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: kafka-influxdb-consumer
+    restart: unless-stopped
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=industrial-sensors
+      - KAFKA_CONSUMER_GROUP=influxdb-writer
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=industrial-lab-super-secret-token
+      - INFLUXDB_ORG=industrial-lab
+      - INFLUXDB_BUCKET=sensors
+    depends_on:
+      kafka:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # InfluxDB 2.x — Time-series database
+  # ──────────────────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=industrial-lab-2026
+      - DOCKER_INFLUXDB_INIT_ORG=industrial-lab
+      - DOCKER_INFLUXDB_INIT_BUCKET=sensors
+      - DOCKER_INFLUXDB_INIT_RETENTION=7d
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=industrial-lab-super-secret-token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - industrial-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Grafana — Dashboards
+  # ──────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    networks:
+      - industrial-net
+
+# ═══════════════════════════════════════════════════════════════════
+# Volumes persistentes
+# ═══════════════════════════════════════════════════════════════════
+volumes:
+  node-red-data:
+  emqx-data:
+  kafka-data:
+  influxdb-data:
+  influxdb-config:
+  grafana-data:
+
+# ═══════════════════════════════════════════════════════════════════
+# Rede compartilhada entre os serviços
+# ═══════════════════════════════════════════════════════════════════
+networks:
+  industrial-net:
+    driver: bridge
