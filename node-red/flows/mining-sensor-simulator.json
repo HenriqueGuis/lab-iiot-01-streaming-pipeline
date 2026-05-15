@@ -1,0 +1,456 @@
+[
+    {
+        "id": "f_mining_simulator",
+        "type": "tab",
+        "label": "Mining Sensor Simulator",
+        "disabled": false,
+        "info": "Simulador de sensores industriais — Cenário de Mineração\n\nPlanta 01\n├── Área BRITAGEM\n│   └── JAW-CRUSHER-01 (Britador de Mandíbula)\n│       ├── temperature_bearing (°C, 1s)\n│       ├── pressure_hydraulic (bar, 1s)\n│       ├── vibration (mm/s, 500ms)\n│       └── power_motor (kW, 1s)\n└── Área TRANSPORTE\n    └── BELT-CONVEYOR-01 (Correia Transportadora)\n        ├── belt_speed (m/s, 500ms)\n        ├── load_weight (ton/h, 1s)\n        └── temperature_roller (°C, 2s)",
+        "env": []
+    },
+    {
+        "id": "g_jaw_crusher",
+        "type": "group",
+        "z": "f_mining_simulator",
+        "name": "JAW-CRUSHER-01 (Britagem)",
+        "style": {
+            "label": true,
+            "fill": "#fdd0a2",
+            "color": "#000000"
+        },
+        "nodes": [
+            "inj_temp_bearing",
+            "fn_temp_bearing",
+            "inj_pressure_hyd",
+            "fn_pressure_hyd",
+            "inj_vibration",
+            "fn_vibration",
+            "inj_power_motor",
+            "fn_power_motor"
+        ],
+        "x": 30,
+        "y": 30,
+        "w": 720,
+        "h": 380
+    },
+    {
+        "id": "g_belt_conveyor",
+        "type": "group",
+        "z": "f_mining_simulator",
+        "name": "BELT-CONVEYOR-01 (Transporte)",
+        "style": {
+            "label": true,
+            "fill": "#c7e9c0",
+            "color": "#000000"
+        },
+        "nodes": [
+            "inj_belt_speed",
+            "fn_belt_speed",
+            "inj_load_weight",
+            "fn_load_weight",
+            "inj_temp_roller",
+            "fn_temp_roller"
+        ],
+        "x": 30,
+        "y": 440,
+        "w": 720,
+        "h": 300
+    },
+    {
+        "id": "inj_temp_bearing",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "1s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 90,
+        "wires": [
+            [
+                "fn_temp_bearing"
+            ]
+        ]
+    },
+    {
+        "id": "fn_temp_bearing",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "Temperatura do Mancal",
+        "func": "// Faixa típica: 50-85°C, oscilando em torno de uma baseline com tendência lenta\nlet state = context.get('state') || { baseline: 68, trend: 0 };\n\n// Tendência lenta (passeio aleatório suave)\nstate.trend += (Math.random() - 0.5) * 0.1;\nstate.trend = Math.max(-3, Math.min(3, state.trend));\nstate.baseline = 68 + state.trend;\n\n// Ruído sobre a baseline\nconst noise = (Math.random() - 0.5) * 2.5;\nconst value = +(state.baseline + noise).toFixed(2);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/BRITAGEM/equipment/JAW-CRUSHER-01/sensor/temperature_bearing\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"BRITAGEM\",\n    equipment_id: \"JAW-CRUSHER-01\",\n    equipment_type: \"jaw_crusher\",\n    sensor_id: \"temperature_bearing\",\n    value: value,\n    unit: \"celsius\",\n    quality: value > 80 ? \"warning\" : \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 90,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_pressure_hyd",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "1s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.7",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 170,
+        "wires": [
+            [
+                "fn_pressure_hyd"
+            ]
+        ]
+    },
+    {
+        "id": "fn_pressure_hyd",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "Pressão Hidráulica",
+        "func": "// Faixa típica: 120-180 bar\nlet state = context.get('state') || { baseline: 150 };\n\nstate.baseline += (Math.random() - 0.5) * 1.5;\nstate.baseline = Math.max(125, Math.min(175, state.baseline));\n\nconst noise = (Math.random() - 0.5) * 3;\nconst value = +(state.baseline + noise).toFixed(1);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/BRITAGEM/equipment/JAW-CRUSHER-01/sensor/pressure_hydraulic\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"BRITAGEM\",\n    equipment_id: \"JAW-CRUSHER-01\",\n    equipment_type: \"jaw_crusher\",\n    sensor_id: \"pressure_hydraulic\",\n    value: value,\n    unit: \"bar\",\n    quality: \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 170,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_vibration",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "500ms",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "0.5",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.9",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 250,
+        "wires": [
+            [
+                "fn_vibration"
+            ]
+        ]
+    },
+    {
+        "id": "fn_vibration",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "Vibração",
+        "func": "// Faixa típica: 2-8 mm/s; ocasionalmente picos curtos\nlet state = context.get('state') || { baseline: 4.2 };\n\n// Tendência lenta\nstate.baseline += (Math.random() - 0.5) * 0.15;\nstate.baseline = Math.max(3, Math.min(6.5, state.baseline));\n\n// Ruído rápido e ocasionalmente um pico\nlet noise = (Math.random() - 0.5) * 1.2;\nif (Math.random() < 0.03) {\n    noise += Math.random() * 2.5; // pico ocasional\n}\nconst value = +(state.baseline + noise).toFixed(2);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/BRITAGEM/equipment/JAW-CRUSHER-01/sensor/vibration\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"BRITAGEM\",\n    equipment_id: \"JAW-CRUSHER-01\",\n    equipment_type: \"jaw_crusher\",\n    sensor_id: \"vibration\",\n    value: value,\n    unit: \"mm/s\",\n    quality: value > 7 ? \"warning\" : \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 250,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_power_motor",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "1s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "1.1",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 340,
+        "wires": [
+            [
+                "fn_power_motor"
+            ]
+        ]
+    },
+    {
+        "id": "fn_power_motor",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_jaw_crusher",
+        "name": "Potência do Motor",
+        "func": "// Faixa típica: 200-450 kW; correlaciona com carga (passeio aleatório com excursões)\nlet state = context.get('state') || { baseline: 320 };\n\n// Tendência mais ampla — simula variação de carga de material\nstate.baseline += (Math.random() - 0.5) * 8;\nstate.baseline = Math.max(210, Math.min(440, state.baseline));\n\nconst noise = (Math.random() - 0.5) * 15;\nconst value = +(state.baseline + noise).toFixed(1);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/BRITAGEM/equipment/JAW-CRUSHER-01/sensor/power_motor\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"BRITAGEM\",\n    equipment_id: \"JAW-CRUSHER-01\",\n    equipment_type: \"jaw_crusher\",\n    sensor_id: \"power_motor\",\n    value: value,\n    unit: \"kW\",\n    quality: \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 340,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_belt_speed",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "500ms",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "0.5",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.4",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 500,
+        "wires": [
+            [
+                "fn_belt_speed"
+            ]
+        ]
+    },
+    {
+        "id": "fn_belt_speed",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "Velocidade da Correia",
+        "func": "// Faixa típica: 1.5-3.5 m/s; geralmente estável\nlet state = context.get('state') || { baseline: 2.6 };\n\nstate.baseline += (Math.random() - 0.5) * 0.05;\nstate.baseline = Math.max(2.0, Math.min(3.2, state.baseline));\n\nconst noise = (Math.random() - 0.5) * 0.15;\nconst value = +(state.baseline + noise).toFixed(2);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/TRANSPORTE/equipment/BELT-CONVEYOR-01/sensor/belt_speed\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"TRANSPORTE\",\n    equipment_id: \"BELT-CONVEYOR-01\",\n    equipment_type: \"belt_conveyor\",\n    sensor_id: \"belt_speed\",\n    value: value,\n    unit: \"m/s\",\n    quality: \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 500,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_load_weight",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "1s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.6",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 580,
+        "wires": [
+            [
+                "fn_load_weight"
+            ]
+        ]
+    },
+    {
+        "id": "fn_load_weight",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "Vazão Mássica",
+        "func": "// Faixa típica: 50-300 ton/h; varia bastante conforme alimentação\nlet state = context.get('state') || { baseline: 180 };\n\n// Variação ampla simulando alimentação irregular\nstate.baseline += (Math.random() - 0.5) * 12;\nstate.baseline = Math.max(60, Math.min(290, state.baseline));\n\nconst noise = (Math.random() - 0.5) * 20;\nconst value = +(state.baseline + noise).toFixed(1);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/TRANSPORTE/equipment/BELT-CONVEYOR-01/sensor/load_weight\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"TRANSPORTE\",\n    equipment_id: \"BELT-CONVEYOR-01\",\n    equipment_type: \"belt_conveyor\",\n    sensor_id: \"load_weight\",\n    value: value,\n    unit: \"ton/h\",\n    quality: \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 580,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "inj_temp_roller",
+        "type": "inject",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "2s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "2",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.8",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 670,
+        "wires": [
+            [
+                "fn_temp_roller"
+            ]
+        ]
+    },
+    {
+        "id": "fn_temp_roller",
+        "type": "function",
+        "z": "f_mining_simulator",
+        "g": "g_belt_conveyor",
+        "name": "Temperatura dos Roletes",
+        "func": "// Faixa típica: 30-65°C; variação muito lenta\nlet state = context.get('state') || { baseline: 42 };\n\nstate.baseline += (Math.random() - 0.5) * 0.4;\nstate.baseline = Math.max(32, Math.min(60, state.baseline));\n\nconst noise = (Math.random() - 0.5) * 1.0;\nconst value = +(state.baseline + noise).toFixed(1);\n\ncontext.set('state', state);\n\nmsg.topic = \"plant/01/area/TRANSPORTE/equipment/BELT-CONVEYOR-01/sensor/temperature_roller\";\nmsg.payload = {\n    timestamp: new Date().toISOString(),\n    plant_id: \"01\",\n    area_id: \"TRANSPORTE\",\n    equipment_id: \"BELT-CONVEYOR-01\",\n    equipment_type: \"belt_conveyor\",\n    sensor_id: \"temperature_roller\",\n    value: value,\n    unit: \"celsius\",\n    quality: value > 58 ? \"warning\" : \"good\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 670,
+        "wires": [
+            [
+                "mqtt_out",
+                "debug_all"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out",
+        "type": "mqtt out",
+        "z": "f_mining_simulator",
+        "name": "Publish MQTT",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correlationData": "",
+        "expiry": "",
+        "broker": "broker_emqx",
+        "x": 870,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "debug_all",
+        "type": "debug",
+        "z": "f_mining_simulator",
+        "name": "Debug (todas)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "broker_emqx",
+        "type": "mqtt-broker",
+        "name": "EMQX (container)",
+        "broker": "emqx",
+        "port": "1883",
+        "clientid": "node-red-mining-simulator",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
